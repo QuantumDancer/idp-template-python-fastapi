@@ -9,6 +9,6 @@ metadata:
     gitlab.com/project-slug: idp/${{ values.teamName }}/${{ values.componentId }}
 spec:
   type: service
-  lifecycle: production
+  lifecycle: experimental
   owner: ${{ values.owner }}
   system: ${{ values.system }}
