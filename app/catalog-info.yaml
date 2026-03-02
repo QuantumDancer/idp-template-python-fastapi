@@ -1,0 +1,14 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.componentId }}
+  title: ${{ values.name }}
+  description: ${{ values.description }}
+  annotations:
+    # GitLab project path — used by the GitLab plugin for MRs, pipelines, etc.
+    gitlab.com/project-slug: idp/${{ values.teamName }}/${{ values.componentId }}
+spec:
+  type: service
+  lifecycle: production
+  owner: ${{ values.owner }}
+  system: ${{ values.system }}

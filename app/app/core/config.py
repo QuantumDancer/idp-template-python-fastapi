@@ -11,7 +11,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "python-fastapi"
+    app_name: str = "${{ values.slug }}"
     app_version: str = "0.1.0"
 
     # Controls log format (JSON when non-dev) and Swagger UI visibility (hidden in prod)

@@ -1,0 +1,11 @@
+# Backstage auto-discovery entry point for this template repository.
+# The GitLab entity provider scans for catalog-info.yaml files.
+# This Location tells it to also load the Template entity defined in template.yaml.
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: python-fastapi-template
+  description: Location for the Python FastAPI service template
+spec:
+  targets:
+    - ./template.yaml

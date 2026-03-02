@@ -1,6 +1,6 @@
-# python-fastapi
+# ${{ values.name }}
 
-Production-ready FastAPI starter template. Provides structured logging, Prometheus metrics, distributed tracing (OTel), and Kubernetes health probes out of the box.
+${{ values.description }}
 
 ## Quick start
 
@@ -51,14 +51,14 @@ Full URL: `/api/v1/widgets/`. Swagger docs, Prometheus metrics, and correlation 
 
 Copy `.env.example` to `.env` and edit as needed.
 
-| Variable                      | Default          | Description                                                                            |
-| ----------------------------- | ---------------- | -------------------------------------------------------------------------------------- |
-| `APP_NAME`                    | `python-fastapi` | Service name (appears in logs and traces)                                              |
-| `APP_VERSION`                 | `0.1.0`          | Service version                                                                        |
-| `ENVIRONMENT`                 | `development`    | `development` \| `staging` \| `production`. Controls log format and Swagger visibility |
-| `LOG_LEVEL`                   | `INFO`           | `DEBUG` \| `INFO` \| `WARNING` \| `ERROR` \| `CRITICAL`                                |
-| `CORS_ORIGINS`                | `["*"]`          | JSON list of allowed CORS origins                                                      |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | _(unset)_        | OTLP/HTTP endpoint; tracing is disabled when unset                                     |
+| Variable                      | Default              | Description                                                                            |
+| ----------------------------- | -------------------- | -------------------------------------------------------------------------------------- |
+| `APP_NAME`                    | `${{ values.slug }}` | Service name (appears in logs and traces)                                              |
+| `APP_VERSION`                 | `0.1.0`              | Service version                                                                        |
+| `ENVIRONMENT`                 | `development`        | `development` \| `staging` \| `production`. Controls log format and Swagger visibility |
+| `LOG_LEVEL`                   | `INFO`               | `DEBUG` \| `INFO` \| `WARNING` \| `ERROR` \| `CRITICAL`                                |
+| `CORS_ORIGINS`                | `["*"]`              | JSON list of allowed CORS origins                                                      |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | _(unset)_            | OTLP/HTTP endpoint; tracing is disabled when unset                                     |
 
 ## Running tests
 
