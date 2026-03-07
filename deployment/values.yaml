@@ -57,6 +57,10 @@ autoscaling:
   maxReplicas: 5
   targetCPUUtilizationPercentage: 80
 
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
 # ESO ExternalSecret pulls image-pull credentials from Vault.
 # The path must contain registry, username, and password keys.
 imagePullSecret:
