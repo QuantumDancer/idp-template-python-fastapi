@@ -100,7 +100,7 @@ docker:
     - chmod +x /usr/local/bin/yq
     - git config --global user.email "gitlab-ci@${CI_SERVER_HOST}"
     - git config --global user.name "GitLab CI"
-    - git clone -b "${DEPLOYMENT_BRANCH}" "https://deploy:${DEPLOYMENT_TOKEN}@${CI_SERVER_HOST}/${DEPLOYMENT_REPO}.git" /tmp/deployment
+    - git clone -b "${DEPLOYMENT_BRANCH}" "https://oauth2:${GITLAB_DEPLOYMENT_TOKEN}@${CI_SERVER_HOST}/${DEPLOYMENT_REPO}.git" /tmp/deployment
   script:
     - yq -i ".image.tag = \"${CI_COMMIT_SHORT_SHA}\"" /tmp/deployment/environments/${ENVIRONMENT}.yaml
     - cd /tmp/deployment

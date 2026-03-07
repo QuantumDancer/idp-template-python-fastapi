@@ -72,7 +72,36 @@ spec:
           default: internal
 
   steps:
-    # Step 1: Apply template variables to the application skeleton
+    # Step 1: Apply template variables to the deployment (Helm chart) skeleton
+    - id: fetch-deployment-template
+      name: Fetch deployment skeleton
+      action: fetch:template
+      input:
+        url: ./deployment
+        targetPath: ./deployment-output
+        values:
+          name: ${{ parameters.name }}
+          slug: ${{ parameters.name | lower | replace(" ", "-") }}
+          componentId: ${{ parameters.system }}-${{ parameters.name | lower | replace(" ", "-") }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          teamName: ${{ parameters.owner | replace("group:default/", "") }}
+          hostname: ${{ parameters.hostname }}
+
+    # Step 2: Create the GitLab deployment repo and push the scaffolded Helm chart
+    - id: publish-deployment-gitlab
+      name: Publish deployment repo to GitLab
+      action: publish:gitlab
+      input:
+        # Deployment repo follows the <system>-<component>-deployment naming convention.
+        repoUrl: "gitlab.home.rottlr.de?owner=idp%2F${{ parameters.owner | replace('group:default/', '') }}&repo=${{ parameters.system }}-${{ parameters.name | lower | replace(' ', '-') }}-deployment"
+        sourcePath: ./deployment-output
+        defaultBranch: development
+        repoVisibility: ${{ parameters.visibility }}
+        gitCommitMessage: "feat: initial scaffolding from Backstage template"
+
+    # Step 3: Apply template variables to the application skeleton
     - id: fetch-template
       name: Fetch application skeleton
       action: fetch:template
@@ -91,7 +120,7 @@ spec:
           # OK, because we are in a single-tenant environment.
           teamName: ${{ parameters.owner | replace("group:default/", "") }}
 
-    # Step 2: Create the GitLab repository and push the scaffolded code
+    # Step 4: Create the GitLab app repository and push the scaffolded code
     - id: publish-gitlab
       name: Publish to GitLab
       action: publish:gitlab
@@ -104,35 +133,6 @@ spec:
         gitCommitMessage: "feat: initial scaffolding from Backstage template"
         settings:
           ci_config_path: ".gitlab-ci.yml"
-
-    # Step 3: Apply template variables to the deployment (Helm chart) skeleton
-    - id: fetch-deployment-template
-      name: Fetch deployment skeleton
-      action: fetch:template
-      input:
-        url: ./deployment
-        targetPath: ./deployment-output
-        values:
-          name: ${{ parameters.name }}
-          slug: ${{ parameters.name | lower | replace(" ", "-") }}
-          componentId: ${{ parameters.system }}-${{ parameters.name | lower | replace(" ", "-") }}
-          description: ${{ parameters.description }}
-          owner: ${{ parameters.owner }}
-          system: ${{ parameters.system }}
-          teamName: ${{ parameters.owner | replace("group:default/", "") }}
-          hostname: ${{ parameters.hostname }}
-
-    # Step 4: Create the GitLab deployment repo and push the scaffolded Helm chart
-    - id: publish-deployment-gitlab
-      name: Publish deployment repo to GitLab
-      action: publish:gitlab
-      input:
-        # Deployment repo follows the <system>-<component>-deployment naming convention.
-        repoUrl: "gitlab.home.rottlr.de?owner=idp%2F${{ parameters.owner | replace('group:default/', '') }}&repo=${{ parameters.system }}-${{ parameters.name | lower | replace(' ', '-') }}-deployment"
-        sourcePath: ./deployment-output
-        defaultBranch: development
-        repoVisibility: ${{ parameters.visibility }}
-        gitCommitMessage: "feat: initial scaffolding from Backstage template"
 
     # Step 5: Register the new component in the Backstage software catalog
     - id: register-catalog
