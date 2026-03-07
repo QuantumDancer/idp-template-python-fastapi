@@ -1,0 +1,11 @@
+image:
+  # Updated by CI pipeline on every main-branch push via:
+  # yq -i ".image.tag = \"${CI_COMMIT_SHORT_SHA}\"" environments/development.yaml
+  tag: "placeholder"
+
+replicaCount: 1
+environment: development
+
+httpRoute:
+  hostnames:
+    - ${{ values.hostname }}.dev.idp.rottlr.de

@@ -1,0 +1,6 @@
+1. Get the application URL:
+   export APP_HOSTNAME={{ .Values.httpRoute.hostnames | first }}
+   echo "https://${APP_HOSTNAME}"
+
+2. Check rollout status:
+   kubectl rollout status deployment/{{ include "${{ values.componentId }}.fullname" . }} -n {{ .Release.Namespace }}

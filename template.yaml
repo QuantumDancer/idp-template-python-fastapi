@@ -37,6 +37,16 @@ spec:
           title: Description
           type: string
           description: Short description of what this service does
+        hostname:
+          title: Hostname
+          type: string
+          description: >
+            Subdomain used for all environments. Must be lowercase, letters, digits, and hyphens only.
+            The environment suffix is appended automatically:
+            homelab → <hostname>.k8s.home.rottlr.de,
+            development → <hostname>.dev.idp.rottlr.de,
+            production → <hostname>.prod.idp.rottlr.de.
+          pattern: "^[a-z][a-z0-9-]*$"
         owner:
           title: Owner Team
           type: string
@@ -95,7 +105,36 @@ spec:
         settings:
           ci_config_path: ".gitlab-ci.yml"
 
-    # Step 3: Register the new component in the Backstage software catalog
+    # Step 3: Apply template variables to the deployment (Helm chart) skeleton
+    - id: fetch-deployment-template
+      name: Fetch deployment skeleton
+      action: fetch:template
+      input:
+        url: ./deployment
+        targetPath: ./deployment-output
+        values:
+          name: ${{ parameters.name }}
+          slug: ${{ parameters.name | lower | replace(" ", "-") }}
+          componentId: ${{ parameters.system }}-${{ parameters.name | lower | replace(" ", "-") }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          teamName: ${{ parameters.owner | replace("group:default/", "") }}
+          hostname: ${{ parameters.hostname }}
+
+    # Step 4: Create the GitLab deployment repo and push the scaffolded Helm chart
+    - id: publish-deployment-gitlab
+      name: Publish deployment repo to GitLab
+      action: publish:gitlab
+      input:
+        # Deployment repo follows the <system>-<component>-deployment naming convention.
+        repoUrl: "gitlab.home.rottlr.de?owner=idp%2F${{ parameters.owner | replace('group:default/', '') }}&repo=${{ parameters.system }}-${{ parameters.name | lower | replace(' ', '-') }}-deployment"
+        sourcePath: ./deployment-output
+        defaultBranch: development
+        repoVisibility: ${{ parameters.visibility }}
+        gitCommitMessage: "feat: initial scaffolding from Backstage template"
+
+    # Step 5: Register the new component in the Backstage software catalog
     - id: register-catalog
       name: Register in Catalog
       action: catalog:register
@@ -107,6 +146,8 @@ spec:
     links:
       - title: Repository
         url: ${{ steps['publish-gitlab'].output.remoteUrl }}
+      - title: Deployment Repository
+        url: ${{ steps['publish-deployment-gitlab'].output.remoteUrl }}
       - title: Open in catalog
         icon: catalog
         entityRef: ${{ steps['register-catalog'].output.entityRef }}

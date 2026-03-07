@@ -1,0 +1,17 @@
+image:
+  # Updated by CI pipeline on every main-branch push via:
+  # yq -i ".image.tag = \"${CI_COMMIT_SHORT_SHA}\"" environments/production.yaml
+  tag: "placeholder"
+
+replicaCount: 2
+environment: production
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+httpRoute:
+  hostnames:
+    - ${{ values.hostname }}.prod.idp.rottlr.de

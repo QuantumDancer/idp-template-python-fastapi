@@ -1,0 +1,69 @@
+replicaCount: 1
+
+image:
+  repository: gitlab.home.rottlr.de:5050/idp/${{ values.teamName }}/${{ values.componentId }}
+  pullPolicy: IfNotPresent
+  # Always overridden in environments/*.yaml by the CI pipeline on deploy.
+  # Falls back to Chart.appVersion as a safety net only.
+  tag: ""
+
+appName: "${{ values.slug }}"
+# Set per environment overlay; injected as ENVIRONMENT env var into the container.
+environment: ""
+
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 8000
+
+# Expose the service via Gateway API HTTPRoute
+httpRoute:
+  annotations: {}
+  parentRefs:
+    - name: external
+      namespace: gateway
+  # Hostnames are set per-environment in environments/*.yaml
+  hostnames: []
+
+livenessProbe:
+  httpGet:
+    path: /api/v1/health/live
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /api/v1/health/ready
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+resources: {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+# ESO ExternalSecret pulls image-pull credentials from Vault.
+# The path must contain registry, username, and password keys.
+imagePullSecret:
+  vaultPath: idp/${{ values.teamName }}/${{ values.componentId }}/image-pull-secret
+
+volumes: []
+volumeMounts: []
+nodeSelector: {}
+tolerations: []
+affinity: {}
