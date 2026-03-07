@@ -719,7 +719,7 @@ wheels = [
 ]
 
 [[package]]
-name = "python-fastapi"
+name = "${{ values.slug }}"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
