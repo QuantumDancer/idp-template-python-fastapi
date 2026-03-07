@@ -5,7 +5,7 @@ metadata:
   title: ${{ values.name }}
   description: ${{ values.description }}
   annotations:
-    # GitLab project path — used by the GitLab plugin for MRs, pipelines, etc.
+    # GitLab project path. Used by the GitLab plugin for MRs, pipelines, etc.
     gitlab.com/project-slug: idp/${{ values.teamName }}/${{ values.componentId }}
 spec:
   type: service

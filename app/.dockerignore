@@ -1,0 +1,24 @@
+# Version control
+.git/
+.gitignore
+
+# Local environment and secrets — never bake these into an image
+.env
+.env.*
+!.env.example
+
+# Python artifacts — builder stage compiles bytecode; no need to copy cruft
+__pycache__/
+*.py[oc]
+*.egg-info/
+.venv/
+build/
+dist/
+
+# Development and test files — not needed at runtime
+tests/
+.python-version
+
+# Editor and OS noise
+.DS_Store
+*.swp

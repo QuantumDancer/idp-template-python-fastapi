@@ -1,0 +1,136 @@
+stages:
+  - verify
+  - package
+  - deploy:homelab
+  - deploy:development
+
+# Run MR pipelines when an MR is open; fall back to branch pipelines otherwise.
+# Without this, jobs without explicit `rules:` only appear in branch pipelines
+# and are silently omitted from MR pipelines, meaning lint/test never show up
+# in MR Code Quality / coverage reports.
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # Suppress the duplicate branch pipeline when an MR is already open so we
+    # don't run verify twice for the same commit.
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+variables:
+  DEPLOYMENT_REPO: idp/${{ values.teamName }}/${{ values.system }}-${{ values.slug }}-deployment
+  UV_CACHE_DIR: .uv-cache
+
+cache:
+  key: uv-${CI_COMMIT_REF_SLUG}
+  paths:
+    - .uv-cache/
+
+lint:
+  stage: verify
+  image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
+  script:
+    - uv sync --frozen --group dev
+    # Write the GitLab Code Quality report regardless of outcome so the artifact
+    # is always available, then re-run without the gitlab format to get a proper
+    # non-zero exit code on violations.
+    - uv run ruff check --output-format=gitlab . > gl-code-quality-report.json || true
+    - uv run ruff check .
+    - uv run ruff format --check .
+  artifacts:
+    when: always
+    reports:
+      codequality: gl-code-quality-report.json
+
+test:
+  stage: verify
+  image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
+  script:
+    - uv sync --frozen --group dev
+    - uv run pytest --junitxml=report.xml
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+  coverage: '/TOTAL\s+\d+\s+\d+\s+(\d+%)/'
+
+# Build the Docker image and push to the GitLab container registry
+docker:
+  stage: package
+  image: docker:29-cli
+  services:
+    - docker:29-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker context create builder
+    - docker buildx create builder --driver docker-container --use
+    # --provenance=false: Docker generates attestation manifests by default,
+    # producing an OCI index instead of a plain image manifest. GitLab's
+    # container registry doesn't display digests correctly for these multi-manifest
+    # images. See https://gitlab.com/gitlab-org/gitlab/-/issues/388865
+    # TODO: This seems to be an old issue. Find out why I'm still affected by this,
+    # even though I run an up-to-date GitLab instance.
+    - >-
+      docker buildx build
+      --provenance=false
+      --cache-from type=registry,ref=$CI_REGISTRY_IMAGE/cache
+      --cache-to type=registry,ref=$CI_REGISTRY_IMAGE/cache,mode=max
+      --push
+      -t $IMAGE_TAG
+      .
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: true
+
+# Update the image tag in the GitOps deployment repo
+.deploy:
+  image: alpine:3
+  before_script:
+    - apk add --no-cache git
+    - wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+    - chmod +x /usr/local/bin/yq
+    - git config --global user.email "gitlab-ci@${CI_SERVER_HOST}"
+    - git config --global user.name "GitLab CI"
+    - git clone -b "${DEPLOYMENT_BRANCH}" "https://deploy:${DEPLOYMENT_TOKEN}@${CI_SERVER_HOST}/${DEPLOYMENT_REPO}.git" /tmp/deployment
+  script:
+    - yq -i ".image.tag = \"${CI_COMMIT_SHORT_SHA}\"" /tmp/deployment/environments/${ENVIRONMENT}.yaml
+    - cd /tmp/deployment
+    - git add environments/${ENVIRONMENT}.yaml
+    - git commit -m "Deploy ${CI_PROJECT_NAME} ${CI_COMMIT_SHORT_SHA} to ${ENVIRONMENT}"
+    - git push
+
+deploy:homelab:
+  stage: deploy:homelab
+  extends: .deploy
+  variables:
+    ENVIRONMENT: homelab
+    DEPLOYMENT_BRANCH: development
+  environment:
+    name: homelab
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: true
+
+deploy:development:
+  stage: deploy:development
+  extends: .deploy
+  variables:
+    ENVIRONMENT: development
+    DEPLOYMENT_BRANCH: development
+  environment:
+    name: development
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: true
