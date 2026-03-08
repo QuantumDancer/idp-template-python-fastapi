@@ -7,6 +7,14 @@ metadata:
   annotations:
     # GitLab project path. Used by the GitLab plugin for MRs, pipelines, etc.
     gitlab.com/project-slug: idp/${{ values.teamName }}/${{ values.componentId }}
+    # Required for @immobiliarelabs/backstage-plugin-gitlab on self-hosted instances.
+    gitlab.com/instance: gitlab.home.rottlr.de
+    # Tells Backstage which cluster resources belong to this entity.
+    # The matching label `backstage.io/kubernetes-id: <componentId>` must be
+    # present on the Deployment (and its Pods) in the cluster.
+    backstage.io/kubernetes-id: ${{ values.componentId }}
+    # Name of the ArgoCD application managing this service.
+    argocd/app-name: ${{ values.teamName }}-${{ values.componentId }}
 spec:
   type: service
   lifecycle: experimental
