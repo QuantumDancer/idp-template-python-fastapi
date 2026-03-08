@@ -41,13 +41,15 @@ Environments and their ArgoCD source branches:
 ## ESO image-pull secret
 
 `templates/image-pull-secret.yaml` syncs registry credentials from Vault via the `vault-backend`
-ClusterSecretStore. The Vault path is:
+ClusterSecretStore. The default Vault path is the shared group-level pull secret:
 
 ```
-idp/${{ values.teamName }}/${{ values.componentId }}/image-pull-secret
+idp/platform/argocd/idp-group-pull-secret
 ```
 
-The secret must contain three keys: `registry`, `username`, `password`.
+The secret must contain two keys: `username`, `password`. The registry
+(`gitlab.home.rottlr.de:5050`) is a static value set in `values.yaml` under
+`imagePullSecret.registry`, not fetched from Vault.
 
 ## Health endpoints
 

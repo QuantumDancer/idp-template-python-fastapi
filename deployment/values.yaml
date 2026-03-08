@@ -61,10 +61,12 @@ podDisruptionBudget:
   enabled: true
   maxUnavailable: 1
 
-# ESO ExternalSecret pulls image-pull credentials from Vault.
-# The path must contain registry, username, and password keys.
+# ESO ExternalSecret pulls image-pull credentials (username & password) from Vault.
 imagePullSecret:
-  vaultPath: idp/${{ values.teamName }}/${{ values.componentId }}/image-pull-secret
+  # Shared group-level pull secret
+  vaultPath: idp/platform/argocd/idp-group-pull-secret
+  # Registry to authenticate against
+  registry: gitlab.home.rottlr.de:5050
 
 volumes: []
 volumeMounts: []
