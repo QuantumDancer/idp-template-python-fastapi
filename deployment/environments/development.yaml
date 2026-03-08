@@ -3,7 +3,6 @@ image:
   # yq -i ".image.tag = \"${CI_COMMIT_SHORT_SHA}\"" environments/development.yaml
   tag: "placeholder"
 
-replicaCount: 1
 environment: development
 
 httpRoute:

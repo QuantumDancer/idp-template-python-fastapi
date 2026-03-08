@@ -3,7 +3,6 @@ image:
   # yq -i ".image.tag = \"${CI_COMMIT_SHORT_SHA}\"" environments/production.yaml
   tag: "placeholder"
 
-replicaCount: 2
 environment: production
 
 autoscaling:
