@@ -1,0 +1,12 @@
+apiVersion: idp.rottler.io/v1alpha1
+kind: ApplicationEnvironment
+metadata:
+  name: ${{ values.teamName }}-${{ values.system }}-${{ values.slug }}
+  labels:
+    idp.rottler.io/team: ${{ values.teamName }}
+    idp.rottler.io/system: ${{ values.system }}
+    idp.rottler.io/component: ${{ values.slug }}
+spec:
+  team: ${{ values.teamName }}
+  system: ${{ values.system }}
+  component: ${{ values.slug }}
