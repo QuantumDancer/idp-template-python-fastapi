@@ -16,6 +16,7 @@ spec:
         - system
         - description
         - owner
+        - visibility
       properties:
         name:
           title: Service Name
@@ -57,11 +58,6 @@ spec:
             allowArbitraryValues: false
             catalogFilter:
               kind: Group
-
-    - title: Repository
-      required:
-        - visibility
-      properties:
         visibility:
           title: Repository Visibility
           type: string
