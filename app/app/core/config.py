@@ -22,8 +22,10 @@ class Settings(BaseSettings):
     # JSON list of allowed CORS origins; ["*"] permits all origins (fine for internal APIs)
     cors_origins: list[str] = ["*"]
 
-    # OTLP/HTTP trace exporter endpoint. Tracing is disabled when unset.
+    # OTLP/gRPC trace exporter endpoint (host:port, e.g. "http://collector:4317"). Tracing is disabled when unset.
     otel_exporter_otlp_endpoint: str | None = None
+    # Service name reported to the trace backend. Defaults to app_name when unset.
+    otel_service_name: str | None = None
 
     @property
     def log_as_json(self) -> bool:

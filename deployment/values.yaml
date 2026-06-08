@@ -11,6 +11,11 @@ appName: "${{ values.slug }}"
 # Set per environment overlay; injected as ENVIRONMENT env var into the container.
 environment: ""
 
+otel:
+  # OTLP/gRPC collector endpoint (port 4317). Tracing is disabled when empty.
+  endpoint: "http://k8s-monitoring-alloy-receiver.k8s-monitoring.svc.cluster.local:4317"
+  serviceName: "${{ values.componentId }}"
+
 serviceAccount:
   create: true
   automount: false

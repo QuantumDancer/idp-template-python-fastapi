@@ -14,7 +14,7 @@ from app.core.logging import setup_logging
 logger = structlog.get_logger(__name__)
 
 
-def _setup_otel(settings: Settings) -> None:
+def _setup_otel(settings: Settings, app: FastAPI) -> None:
     """Initialize OpenTelemetry tracing. No-op when endpoint is not configured.
 
     OTel SDK imports are lazy so importing this module never installs a global
@@ -25,19 +25,27 @@ def _setup_otel(settings: Settings) -> None:
         return
 
     from opentelemetry import trace
-    from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
     from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
     from opentelemetry.sdk.resources import SERVICE_NAME, Resource
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-    resource = Resource.create({SERVICE_NAME: settings.app_name})
+    service_name = settings.otel_service_name or settings.app_name
+    resource = Resource.create({SERVICE_NAME: service_name})
     provider = TracerProvider(resource=resource)
+    # gRPC exporter; endpoint is host:port without a path (e.g. "http://collector:4317")
     exporter = OTLPSpanExporter(endpoint=settings.otel_exporter_otlp_endpoint)
     provider.add_span_processor(BatchSpanProcessor(exporter))
     trace.set_tracer_provider(provider)
 
-    FastAPIInstrumentor().instrument()
+    # instrument_app patches build_middleware_stack on the app instance so OTel
+    # wraps the stack when it is first built. instrument() (the global form)
+    # only patches the FastAPI class, missing already-created instances.
+    FastAPIInstrumentor().instrument_app(
+        app,
+        excluded_urls="/api/v1/health/live,/api/v1/health/ready",
+    )
     logger.info("otel_tracing_enabled", endpoint=settings.otel_exporter_otlp_endpoint)
 
 
@@ -45,7 +53,6 @@ def _setup_otel(settings: Settings) -> None:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
     setup_logging(settings.log_level, as_json=settings.log_as_json)
-    _setup_otel(settings)
     logger.info(
         "app_startup",
         app=settings.app_name,
@@ -78,6 +85,16 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(api_router)
+
+    @app.get("/", include_in_schema=False)
+    def root() -> dict:
+        return {"name": settings.app_name, "version": settings.app_version}
+
+    # OTel must be set up before the app handles its first ASGI call. Starlette
+    # builds and caches middleware_stack on __call__, which fires for the lifespan
+    # startup event — before any lifespan body code runs. Patching build_middleware_stack
+    # inside lifespan therefore comes too late; the cached stack is already in place.
+    _setup_otel(settings, app)
 
     # Middleware is applied LIFO: last-registered = outermost (first to handle requests).
     # CORS must be outermost to handle preflight OPTIONS before anything else runs.
