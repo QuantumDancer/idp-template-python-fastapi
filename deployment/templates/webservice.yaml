@@ -1,0 +1,30 @@
+apiVersion: idp.rottler.io/v1alpha1
+kind: WebService
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    idp.rottler.io/team: ${{ values.teamName }}
+    idp.rottler.io/environment: {{ .Values.environment }}
+spec:
+  team: ${{ values.teamName }}
+  environment: {{ .Values.environment }}
+  image:
+    repository: gitlab.home.rottlr.de:5050/idp/${{ values.teamName }}/${{ values.componentId }}
+    # CI rewrites .image.tag in environments/<env>.yaml on every main push.
+    tag: {{ .Values.image.tag | quote }}
+  port: 8000
+  compute: small
+  scaling:
+    {{- toYaml .Values.scaling | nindent 4 }}
+  expose:
+    # Short name → <hostname>.<cluster-base-domain>, resolved per environment by
+    # the composition (e.g. ${{ values.hostname }}.k8s.home.rottlr.de on homelab).
+    hostname: ${{ values.hostname }}
+  env:
+    ENVIRONMENT: {{ .Values.environment | quote }}
+    APP_NAME: "${{ values.slug }}"
+    {{- if .Values.otel.endpoint }}
+    OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.otel.endpoint | quote }}
+    OTEL_SERVICE_NAME: {{ .Values.otel.serviceName | quote }}
+    {{- end }}

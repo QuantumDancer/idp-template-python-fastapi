@@ -51,22 +51,21 @@ Helm chart published to a separate `-deployment` GitOps repo and managed by Argo
 
 ### Structure
 
+The chart renders a single `idp.rottler.io/v1alpha1` WebService CR; the Crossplane composition
+behind it produces the Deployment, Service, HTTPRoute, image-pull ExternalSecret, ServiceMonitor
+and PodDisruptionBudget.
+
 ```
 deployment/
 ├── Chart.yaml                  # Chart name and version (uses ${{ values.componentId }})
-├── values.yaml                 # Base values: image repo, probes, ESO vault path, httpRoute
+├── values.yaml                 # Per-environment base values: environment, image.tag, scaling
 ├── environments/
-│   ├── homelab.yaml            # homelab overrides: image.tag (CI-managed), hostname, replicas
-│   ├── development.yaml        # development overrides
-│   └── production.yaml         # production overrides: autoscaling enabled, higher replicas
+│   ├── homelab.yaml            # homelab overrides: image.tag (CI-managed), scaling.min: 1
+│   ├── development.yaml        # development overrides: image.tag
+│   └── production.yaml         # production overrides: scaling min 2 / max 10 (CPU HPA)
 └── templates/
-    ├── _helpers.tpl            # fullname, labels, selectorLabels, serviceAccountName
-    ├── deployment.yaml         # Deployment; replica count suppressed when HPA is enabled
-    ├── service.yaml            # ClusterIP Service on port 8000
-    ├── serviceaccount.yaml     # ServiceAccount (no RBAC — app doesn't need cluster access)
-    ├── httproute.yaml          # Gateway API HTTPRoute; parent ref: external/gateway
-    ├── hpa.yaml                # HPA (only rendered when autoscaling.enabled: true)
-    └── image-pull-secret.yaml  # ESO ExternalSecret pulling registry creds from Vault
+    ├── webservice.yaml         # the WebService CR — static config hard-coded, per-env templated
+    └── NOTES.txt               # post-install hints
 ```
 
 ### Commands (run from `deployment/`)
@@ -93,9 +92,9 @@ yq -i ".image.tag = \"${CI_COMMIT_SHORT_SHA}\"" environments/${ENVIRONMENT}.yaml
 
 ### Image pull secret
 
-`templates/image-pull-secret.yaml` creates an ESO `ExternalSecret` backed by the `vault-backend`
-ClusterSecretStore. The Vault path is set in `values.yaml` under `imagePullSecret.vaultPath` and
-must expose three keys: `registry`, `username`, `password`.
+The platform-standard group pull secret is composed automatically by the WebService composition
+from Vault (`idp/platform/argocd/idp-group-pull-secret`); the chart no longer carries an
+image-pull manifest.
 
 ## Backstage template variables
 
@@ -118,4 +117,4 @@ These placeholders must remain valid in template files — do not replace them w
 - `app/` and `deployment/` are rendered separately by `fetch:template` and published as distinct repos.
 - `deployment/CLAUDE.md` is written for Claude working in the scaffolded deployment repo — it uses `${{ values.* }}` so it renders with the concrete service name, vault path, etc.
 - Helm template syntax (`{{ }}`) passes through unchanged; only `${{ }}` is processed by Backstage.
-- Named templates in `deployment/templates/_helpers.tpl` are prefixed with `${{ values.componentId }}` so they render to a chart-specific prefix (e.g. `orders-my-service.fullname`).
+- `deployment/templates/webservice.yaml` mixes both: Helm `{{ .Release.* }}`/`{{ .Values.* }}` for per-environment values and `${{ values.* }}` for scaffolder-time identity (team, componentId, hostname, slug).

@@ -1,80 +1,25 @@
-replicaCount: 2
+# Base values for the ${{ values.name }} WebService.
+#
+# This chart renders a single idp.rottler.io/v1alpha1 WebService custom resource.
+# Everything that is identical across environments (image repository, port, compute
+# tier, hostname, static env) is hard-coded in templates/webservice.yaml. Only the
+# values that differ per environment live here and are overridden by the deep-merged
+# environments/<env>.yaml overlays.
+
+# Set per environment overlay (homelab | development | production). Selects the
+# cluster base domain for the hostname and is injected as the ENVIRONMENT env var.
+environment: ""
 
 image:
-  repository: gitlab.home.rottlr.de:5050/idp/${{ values.teamName }}/${{ values.componentId }}
-  pullPolicy: IfNotPresent
   # Always overridden in environments/*.yaml by the CI pipeline on deploy.
-  # Falls back to Chart.appVersion as a safety net only.
   tag: ""
-
-appName: "${{ values.slug }}"
-# Set per environment overlay; injected as ENVIRONMENT env var into the container.
-environment: ""
 
 otel:
   # OTLP/gRPC collector endpoint (port 4317). Tracing is disabled when empty.
   endpoint: "http://k8s-monitoring-alloy-receiver.k8s-monitoring.svc.cluster.local:4317"
   serviceName: "${{ values.componentId }}"
 
-serviceAccount:
-  create: true
-  automount: false
-  annotations: {}
-  name: ""
-
-podAnnotations: {}
-podLabels: {}
-
-securityContext: {}
-
-service:
-  type: ClusterIP
-  port: 8000
-
-# Expose the service via Gateway API HTTPRoute
-httpRoute:
-  annotations: {}
-  parentRefs:
-    - name: external
-      namespace: gateway
-  # Hostnames are set per-environment in environments/*.yaml
-  hostnames: []
-
-livenessProbe:
-  httpGet:
-    path: /api/v1/health/live
-    port: http
-  initialDelaySeconds: 5
-  periodSeconds: 10
-
-readinessProbe:
-  httpGet:
-    path: /api/v1/health/ready
-    port: http
-  initialDelaySeconds: 5
-  periodSeconds: 10
-
-resources: {}
-
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 5
-  targetCPUUtilizationPercentage: 80
-
-podDisruptionBudget:
-  enabled: true
-  maxUnavailable: 1
-
-# ESO ExternalSecret pulls image-pull credentials (username & password) from Vault.
-imagePullSecret:
-  # Shared group-level pull secret
-  vaultPath: idp/platform/argocd/idp-group-pull-secret
-  # Registry to authenticate against
-  registry: gitlab.home.rottlr.de:5050
-
-volumes: []
-volumeMounts: []
-nodeSelector: {}
-tolerations: []
-affinity: {}
+# Replica bounds. min == max (or max omitted) → fixed replicas; min < max → CPU HPA.
+# A PodDisruptionBudget is composed automatically when min >= 2.
+scaling:
+  min: 2

@@ -1,6 +1,11 @@
-1. Get the application URL:
-   export APP_HOSTNAME={{ .Values.httpRoute.hostnames | first }}
-   echo "https://${APP_HOSTNAME}"
+${{ values.name }} deployed as a WebService ({{ .Release.Name }}).
 
-2. Check rollout status:
-   kubectl rollout status deployment/{{ include "${{ values.componentId }}.fullname" . }} -n {{ .Release.Namespace }}
+The Crossplane composition owns the Deployment, Service, HTTPRoute and friends.
+
+1. Check the WebService status (URL appears once it is exposed):
+   kubectl get webservice {{ .Release.Name }} -n {{ .Release.Namespace }} \
+     -o jsonpath='{.status.phase}{"\t"}{.status.url}{"\n"}'
+
+2. Watch the composed resources reconcile:
+   kubectl get deployment,service,httproute -n {{ .Release.Namespace }} \
+     -l app.kubernetes.io/name={{ .Release.Name }}

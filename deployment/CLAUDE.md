@@ -5,6 +5,17 @@ It contains a Helm chart that ArgoCD uses to deploy the service into each enviro
 
 The application source repo is at `idp/${{ values.teamName }}/${{ values.componentId }}`.
 
+## What the chart renders
+
+The chart renders a single `idp.rottler.io/v1alpha1` **WebService** custom resource
+(`templates/webservice.yaml`). The Crossplane composition behind that CR produces the
+Deployment, Service, Gateway API HTTPRoute, image-pull ExternalSecret, ServiceMonitor and
+PodDisruptionBudget — the platform owns everything a developer should not have to wire up.
+
+Config that is identical across environments (image repository, port, compute tier, hostname,
+static env) is hard-coded in `templates/webservice.yaml`; only per-environment values
+(`environment`, `image.tag`, `scaling`) live in `values.yaml` and the overlays.
+
 ## Common Helm commands
 
 ```bash
@@ -38,27 +49,23 @@ Environments and their ArgoCD source branches:
 | `environments/development.yaml` | `development` | `development` | `<hostname>.dev.idp.rottlr.de`  |
 | `environments/production.yaml`  | `production`  | `production`  | `<hostname>.prod.idp.rottlr.de` |
 
-## ESO image-pull secret
+## Image-pull secret
 
-`templates/image-pull-secret.yaml` syncs registry credentials from Vault via the `vault-backend`
-ClusterSecretStore. The default Vault path is the shared group-level pull secret:
-
-```
-idp/platform/argocd/idp-group-pull-secret
-```
-
-The secret must contain two keys: `username`, `password`. The registry
-(`gitlab.home.rottlr.de:5050`) is a static value set in `values.yaml` under
-`imagePullSecret.registry`, not fetched from Vault.
+The platform-standard group pull secret is plumbed by the composition automatically; the chart
+no longer carries an `image-pull-secret.yaml`. The Vault path
+(`idp/platform/argocd/idp-group-pull-secret`) and registry are composition concerns now.
 
 ## Health endpoints
 
-The liveness and readiness probe paths are configured in `values.yaml`:
-
-- Liveness: `/api/v1/health/live`
-- Readiness: `/api/v1/health/ready`
+Liveness `/api/v1/health/live` and readiness `/api/v1/health/ready` are the WebService XRD
+golden-path defaults — the same paths this app serves — so they are not set in this chart.
+Override them only for non-conforming apps by adding a `healthChecks` block to the WebService
+spec in `templates/webservice.yaml`.
 
 ## Adding environment variables
 
-Add static env vars to the `env` list in `templates/deployment.yaml`.
-For secret values, add an `ExternalSecret` in `templates/` and reference it via `envFrom`.
+Add static, non-secret vars directly to the `env` map in `templates/webservice.yaml`; config
+that is identical across environments is hard-coded there, not in `values.yaml`. `ENVIRONMENT`
+is injected from the per-environment `environment` value. For secret values, add an `envFrom`
+entry to the WebService spec — either `secretRef` for an existing in-namespace Secret, or
+`vaultPath` + `name` to have the composition create the ExternalSecret.

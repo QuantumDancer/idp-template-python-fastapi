@@ -1,16 +1,12 @@
+environment: production
+
 image:
   # Updated by CI pipeline on every main-branch push via:
   # yq -i ".image.tag = \"${CI_COMMIT_SHORT_SHA}\"" environments/production.yaml
   tag: "placeholder"
 
-environment: production
-
-autoscaling:
-  enabled: true
-  minReplicas: 2
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 80
-
-httpRoute:
-  hostnames:
-    - ${{ values.hostname }}.prod.idp.rottlr.de
+# CPU HPA between 2 and 10 replicas.
+scaling:
+  min: 2
+  max: 10
+  targetCPUUtilization: 80

@@ -42,7 +42,10 @@ COPY --from=builder --chown=appuser:appuser /app /app
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
 
-USER appuser
+# Numeric UID (not the "appuser" name): the kubelet's runAsNonRoot check cannot
+# verify a non-numeric user is non-root, which the platform's WebService baseline
+# enforces. The UID matches the appuser created above.
+USER 1001
 
 EXPOSE 8000
 
