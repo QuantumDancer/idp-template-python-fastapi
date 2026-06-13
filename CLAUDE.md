@@ -109,6 +109,8 @@ Files in `app/` and `deployment/` use `${{ values.* }}` syntax. Key values:
 | `values.owner`       | Backstage group ref                                  |
 | `values.system`      | Backstage system name                                |
 | `values.teamName`    | Bare team name (stripped of `group:default/` prefix) |
+| `values.hostname`    | Subdomain → the WebService `expose.hostname`         |
+| `values.exposePath`  | `expose.path`: `/` (standalone) or `/api` (behind a frontend), from the `exposure` parameter |
 
 These placeholders must remain valid in template files — do not replace them with literal values.
 

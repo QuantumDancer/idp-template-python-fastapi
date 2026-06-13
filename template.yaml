@@ -48,6 +48,23 @@ spec:
             development → <hostname>.dev.idp.rottlr.de,
             production → <hostname>.prod.idp.rottlr.de.
           pattern: "^[a-z][a-z0-9-]*$"
+        exposure:
+          title: Exposure
+          type: string
+          description: >
+            How this service claims its hostname. "Standalone" owns the whole host.
+            "Behind a frontend" serves only the /api subtree, so a React SPA on the SAME
+            hostname can own / — that SPA's WebService takes path: / and this one takes
+            path: /api (Gateway API routes the more specific prefix first). Either way the
+            API is reachable at <hostname>/api/v1/... (the app mounts its router at /api/v1).
+            Pick "Behind a frontend" only when an SPA shares this exact hostname.
+          enum:
+            - standalone
+            - behind-frontend
+          enumNames:
+            - Standalone (owns its hostname)
+            - Behind a frontend (shares the hostname, serves /api)
+          default: standalone
         owner:
           title: Owner Team
           type: string
@@ -117,6 +134,9 @@ spec:
           system: ${{ parameters.system }}
           teamName: ${{ parameters.owner | replace("group:default/", "") }}
           hostname: ${{ parameters.hostname }}
+          # PathPrefix the WebService claims on its hostname (expose.path):
+          # standalone owns "/", "behind a frontend" serves only "/api".
+          exposePath: ${{ "/api" if parameters.exposure == "behind-frontend" else "/" }}
 
     # Step 4: Create the GitLab deployment repo and push the scaffolded Helm chart
     - id: publish-deployment-gitlab

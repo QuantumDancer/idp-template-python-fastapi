@@ -16,6 +16,21 @@ Config that is identical across environments (image repository, port, compute ti
 static env) is hard-coded in `templates/webservice.yaml`; only per-environment values
 (`environment`, `image.tag`, `scaling`) live in `values.yaml` and the overlays.
 
+## Exposure (`expose.path`)
+
+`templates/webservice.yaml` sets `expose.path`, chosen at scaffold time via the template's
+**Exposure** parameter:
+
+- **Standalone** (`path: /`) — this service owns the whole hostname.
+- **Behind a frontend** (`path: /api`) — it shares the hostname with a React SPA that owns `/`;
+  Gateway API routes the more specific `/api` prefix here. The SPA's WebService must use the
+  **same** `expose.hostname` and `path: /`.
+
+Either way the API is reachable at `<hostname>/api/v1/...` — the app mounts its router at
+`/api/v1`, so the route prefix and the mount prefix coincide and nothing is stripped. To switch a
+deployed service between modes, edit `path` in `templates/webservice.yaml` (it is the same in all
+environments).
+
 ## Common Helm commands
 
 ```bash

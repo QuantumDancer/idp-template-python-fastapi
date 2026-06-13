@@ -21,6 +21,10 @@ spec:
     # Short name → <hostname>.<cluster-base-domain>, resolved per environment by
     # the composition (e.g. ${{ values.hostname }}.k8s.home.rottlr.de on homelab).
     hostname: ${{ values.hostname }}
+    # "/" → this service owns the whole host (standalone). "/api" → it shares the
+    # host with a frontend SPA that owns "/"; the API still serves /api/v1/... .
+    # Chosen at scaffold time via the template's "Exposure" parameter.
+    path: ${{ values.exposePath }}
   env:
     ENVIRONMENT: {{ .Values.environment | quote }}
     APP_NAME: "${{ values.slug }}"
