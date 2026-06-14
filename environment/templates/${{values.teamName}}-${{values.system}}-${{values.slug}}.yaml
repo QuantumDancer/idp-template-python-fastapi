@@ -13,7 +13,7 @@ spec:
   team: ${{ values.teamName }}
   # Set per cluster by the idp-argocd-user-apps Helm chart (one of homelab,
   # development, production). Single-brace Helm syntax passes through Backstage's
-  # ${{ }} renderer untouched. The XRD requires this field.
+  # nunjucks renderer untouched. The XRD requires this field.
   environment: {{ .Values.environment }}
   system: ${{ values.system }}
   component: ${{ values.slug }}
