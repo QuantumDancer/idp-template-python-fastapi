@@ -61,10 +61,10 @@ test:
 docker:
   stage: package
   image: docker:29-cli
-  services:
-    - docker:29-dind
   variables:
-    DOCKER_TLS_CERTDIR: "/certs"
+    # Runner mounts the host's rootful Podman socket here (see runner config).
+    # No dind service needed — Podman is the container runtime on this runner.
+    DOCKER_HOST: unix:///run/podman/podman.sock
     IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
