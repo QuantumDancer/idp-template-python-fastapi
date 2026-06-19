@@ -29,8 +29,8 @@ FROM python:3.14-slim-bookworm
 
 # Fixed UID/GID (non-zero) makes bind-mounted volume permissions predictable
 # across hosts and is required by some container security policies.
-RUN groupadd --system --gid 1001 appuser \
-    && useradd --system --uid 1001 --gid 1001 --no-create-home appuser
+RUN groupadd --gid 1001 appuser \
+    && useradd --uid 1001 --gid 1001 --no-create-home appuser
 
 WORKDIR /app
 

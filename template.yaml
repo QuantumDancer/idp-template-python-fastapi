@@ -30,10 +30,18 @@ spec:
         system:
           title: System
           type: string
-          description: >
-            The Backstage system this component belongs to (kebab-case, e.g. "orders").
-            Must match an existing System entity in the catalog.
-          pattern: "^[a-z][a-z0-9-]*$"
+          description: The Backstage System this component belongs to.
+          ui:field: EntityPicker
+          ui:options:
+            # Only existing System entities are selectable; no free-typing.
+            allowArbitraryValues: false
+            catalogFilter:
+              kind: System
+            # defaultKind/defaultNamespace keep the picker's value the bare system
+            # name (e.g. "orders") rather than a full ref, so the downstream
+            # componentId derivation `${{ parameters.system }}-...` is unchanged.
+            defaultKind: System
+            defaultNamespace: default
         description:
           title: Description
           type: string
