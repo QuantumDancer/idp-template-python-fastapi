@@ -1,0 +1,57 @@
+# Grafana dashboard provisioned alongside the workload via the grafana-operator.
+#
+# The dashboard model lives in dashboards/dashboard.json and is loaded verbatim with
+# .Files.Get so it is NOT Helm-rendered — Grafana legend tokens (double curly braces) would
+# otherwise be parsed as Helm actions. The only deploy-time substitution is the __NAMESPACE__
+# sentinel, swapped for the release namespace.
+#
+# Folder tree: <team> > <system> > this dashboard. The grafana-operator imports
+# cross-namespace into the Grafana instance.
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaFolder
+metadata:
+  # Per-release name avoids a collision when components co-locate in one namespace; the
+  # shared spec.uid makes them all resolve to the single <team>/<system> Grafana folder.
+  name: {{ .Release.Name }}-system-folder
+  namespace: {{ .Release.Namespace }}
+  labels:
+    idp.rottler.io/team: ${{ values.teamName }}
+    idp.rottler.io/system: ${{ values.system }}
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  uid: ${{ values.teamName }}-${{ values.system }}
+  title: ${{ values.system }}
+  parentFolderUID: ${{ values.teamName }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-dashboard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    idp.rottler.io/team: ${{ values.teamName }}
+    idp.rottler.io/system: ${{ values.system }}
+data:
+  dashboard.json: |-
+{{ .Files.Get "dashboards/dashboard.json" | replace "__NAMESPACE__" .Release.Namespace | indent 4 }}
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: {{ .Release.Name }}-dashboard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    idp.rottler.io/team: ${{ values.teamName }}
+    idp.rottler.io/system: ${{ values.system }}
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      dashboards: grafana
+  folderUID: ${{ values.teamName }}-${{ values.system }}
+  configMapRef:
+    name: {{ .Release.Name }}-dashboard
+    key: dashboard.json
