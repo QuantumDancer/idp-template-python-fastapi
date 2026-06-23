@@ -120,3 +120,15 @@ These placeholders must remain valid in template files — do not replace them w
 - `deployment/CLAUDE.md` is written for Claude working in the scaffolded deployment repo — it uses `${{ values.* }}` so it renders with the concrete service name, vault path, etc.
 - Helm template syntax (`{{ }}`) passes through unchanged; only `${{ }}` is processed by Backstage.
 - `deployment/templates/webservice.yaml` mixes both: Helm `{{ .Release.* }}`/`{{ .Values.* }}` for per-environment values and `${{ values.* }}` for scaffolder-time identity (team, componentId, hostname, slug).
+
+## TODO
+
+- **Validate `app/uv.lock` before publishing.** A corrupt lockfile (e.g. a
+  duplicated root `[[package]]` block) is invisible here because `${{ values.slug }}`
+  is still abstract, but it breaks every scaffolded repo's `lint`/`test` jobs at
+  `uv sync --frozen` with `Found duplicate package <slug>==0.1.0 @ virtual+.`. Add a
+  template-level CI guard (no `.gitlab-ci.yml` exists at the template root yet) that
+  renders the placeholders to a throwaway slug — e.g. `sed 's/${{ '"'"' values.slug
+  }}/check-app/g'` over `app/pyproject.toml` and `app/uv.lock` — then runs
+  `uv lock --check` (and ideally `uv sync --frozen`) in that rendered dir so a bad
+  lock fails the template repo's own pipeline instead of the consumer's.
