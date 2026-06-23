@@ -37,9 +37,11 @@ spec:
             allowArbitraryValues: false
             catalogFilter:
               kind: System
-            # defaultKind/defaultNamespace keep the picker's value the bare system
-            # name (e.g. "orders") rather than a full ref, so the downstream
-            # componentId derivation `${{ parameters.system }}-...` is unchanged.
+            # The picker stores a full entity ref ("system:default/<name>"), not the bare
+            # name. Every downstream use of parameters.system therefore strips the
+            # "system:default/" prefix (mirrors the owner OwnerPicker handling). The bare
+            # name is required because it feeds GitLab repo paths and k8s resource/label
+            # names, which forbid ":" and "/".
             defaultKind: System
             defaultNamespace: default
         description:
@@ -104,10 +106,10 @@ spec:
           # Lowercase slug; spaces → dashes (e.g. "Order Management" → "order-management")
           slug: ${{ parameters.name | lower | replace(" ", "-") }}
           # Canonical component ID following the <system>-<component> repo naming convention
-          componentId: ${{ parameters.system }}-${{ parameters.name | lower | replace(" ", "-") }}
+          componentId: ${{ parameters.system | replace('system:default/', '') }}-${{ parameters.name | lower | replace(" ", "-") }}
           description: ${{ parameters.description }}
           owner: ${{ parameters.owner }}
-          system: ${{ parameters.system }}
+          system: ${{ parameters.system | replace('system:default/', '') }}
           # Strip the Backstage entity ref prefix to get the bare team name (group:default/team-a → team-a).
           # OK, because we are in a single-tenant environment.
           teamName: ${{ parameters.owner | replace("group:default/", "") }}
@@ -119,7 +121,7 @@ spec:
       input:
         # Repository is created at idp/<team>/<system>-<component> per IDP conventions.
         # %2F is required to encode the / separator inside a URL query-string value.
-        repoUrl: "gitlab.home.rottlr.de?owner=idp%2F${{ parameters.owner | replace('group:default/', '') }}&repo=${{ parameters.system }}-${{ parameters.name | lower | replace(' ', '-') }}"
+        repoUrl: "gitlab.home.rottlr.de?owner=idp%2F${{ parameters.owner | replace('group:default/', '') }}&repo=${{ parameters.system | replace('system:default/', '') }}-${{ parameters.name | lower | replace(' ', '-') }}"
         defaultBranch: main
         repoVisibility: ${{ parameters.visibility }}
         gitCommitMessage: "feat: initial scaffolding from Backstage template"
@@ -136,10 +138,10 @@ spec:
         values:
           name: ${{ parameters.name }}
           slug: ${{ parameters.name | lower | replace(" ", "-") }}
-          componentId: ${{ parameters.system }}-${{ parameters.name | lower | replace(" ", "-") }}
+          componentId: ${{ parameters.system | replace('system:default/', '') }}-${{ parameters.name | lower | replace(" ", "-") }}
           description: ${{ parameters.description }}
           owner: ${{ parameters.owner }}
-          system: ${{ parameters.system }}
+          system: ${{ parameters.system | replace('system:default/', '') }}
           teamName: ${{ parameters.owner | replace("group:default/", "") }}
           hostname: ${{ parameters.hostname }}
           # PathPrefix the WebService claims on its hostname (expose.path):
@@ -152,7 +154,7 @@ spec:
       action: publish:gitlab
       input:
         # Deployment repo follows the <system>-<component>-deployment naming convention.
-        repoUrl: "gitlab.home.rottlr.de?owner=idp%2F${{ parameters.owner | replace('group:default/', '') }}&repo=${{ parameters.system }}-${{ parameters.name | lower | replace(' ', '-') }}-deployment"
+        repoUrl: "gitlab.home.rottlr.de?owner=idp%2F${{ parameters.owner | replace('group:default/', '') }}&repo=${{ parameters.system | replace('system:default/', '') }}-${{ parameters.name | lower | replace(' ', '-') }}-deployment"
         sourcePath: ./deployment-output
         defaultBranch: development
         repoVisibility: ${{ parameters.visibility }}
@@ -169,7 +171,7 @@ spec:
         targetPath: ./environment-output
         values:
           teamName: ${{ parameters.owner | replace("group:default/", "") }}
-          system: ${{ parameters.system }}
+          system: ${{ parameters.system | replace('system:default/', '') }}
           slug: ${{ parameters.name | lower | replace(" ", "-") }}
 
     # Step 6: Push the rendered CR directly to main in idp-argocd-user-apps.
@@ -182,7 +184,7 @@ spec:
         repoUrl: "gitlab.home.rottlr.de?owner=idp%2Fplatform&repo=idp-argocd-user-apps"
         sourcePath: ./environment-output
         branchName: main
-        commitMessage: "feat: register ${{ parameters.system }}-${{ parameters.name | lower | replace(' ', '-') }} ApplicationEnvironment"
+        commitMessage: "feat: register ${{ parameters.system | replace('system:default/', '') }}-${{ parameters.name | lower | replace(' ', '-') }} ApplicationEnvironment"
 
     # Step 7: Register the new component in the Backstage software catalog
     - id: register-catalog
